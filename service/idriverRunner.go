@@ -1,10 +1,10 @@
 package service
 
-import "ubermc/entity"
+import "github.com/vk-proj-lld/cabdispatcher/entities"
 
 type idriverRunner interface {
-	getDriver() *entity.Driver
-	Accept(riderId string, respChan chan<- *entity.DriverResponse)
+	getDriver() *entities.Driver
+	Accept(riderId string, respChan chan<- *entities.DriverResponse)
 	isBusy() bool
 	engage() bool
 	disEngage() bool

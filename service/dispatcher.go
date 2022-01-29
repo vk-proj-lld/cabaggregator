@@ -4,7 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"ubermc/entity"
+
+	"github.com/vk-proj-lld/cabdispatcher/entities"
 )
 
 type dispather struct {
@@ -26,8 +27,8 @@ func (disp *dispather) AddDriver(ids ...string) {
 	}
 }
 
-func (disp *dispather) Dispatch(ride *entity.Ride) (*entity.Driver, error) {
-	var responseChan = make(chan *entity.DriverResponse)
+func (disp *dispather) Dispatch(ride *entities.Ride) (*entities.Driver, error) {
+	var responseChan = make(chan *entities.DriverResponse)
 	var foundDrunner idriverRunner
 
 	var wg sync.WaitGroup

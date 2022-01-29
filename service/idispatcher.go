@@ -1,8 +1,8 @@
 package service
 
-import "ubermc/entity"
+import "github.com/vk-proj-lld/cabdispatcher/entities"
 
 type IDispatcher interface {
 	AddDriver(ids ...string)
-	Dispatch(*entity.Ride) (*entity.Driver, error)
+	Dispatch(*entities.Ride) (*entities.Driver, error)
 }

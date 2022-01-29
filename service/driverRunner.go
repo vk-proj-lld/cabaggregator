@@ -4,7 +4,8 @@ import (
 	"math/rand"
 	"sync"
 	"time"
-	"ubermc/entity"
+
+	"github.com/vk-proj-lld/cabdispatcher/entities"
 )
 
 const (
@@ -16,7 +17,7 @@ const (
 type driverRunner struct {
 	processingTime time.Duration
 	rangen         *rand.Rand
-	driver         *entity.Driver
+	driver         *entities.Driver
 
 	mu   sync.Mutex
 	busy bool
@@ -25,7 +26,7 @@ type driverRunner struct {
 func NewDriverRunner(id string) idriverRunner {
 	return &driverRunner{
 		rangen:         rand.New(rand.NewSource(time.Now().UnixMicro())),
-		driver:         entity.NewDriver(id),
+		driver:         entities.NewDriver(id),
 		processingTime: maxProcessingTime,
 	}
 }
@@ -34,19 +35,19 @@ func (drunner *driverRunner) process() {
 	time.Sleep(time.Duration(drunner.rangen.Intn(5000)) * time.Millisecond)
 }
 
-func (drunner *driverRunner) Accept(rideId string, respChan chan<- *entity.DriverResponse) {
+func (drunner *driverRunner) Accept(rideId string, respChan chan<- *entities.DriverResponse) {
 	if drunner.isBusy() {
-		respChan <- entity.NewDriverResponse(ActionReject, drunner.driver.GetId(), rideId)
+		respChan <- entities.NewDriverResponse(ActionReject, drunner.driver.GetId(), rideId)
 		return
 	}
 	drunner.process()
 	if drunner.rangen.Intn(2) == 0 {
-		respChan <- entity.NewDriverResponse(ActionAccept, drunner.driver.GetId(), rideId)
+		respChan <- entities.NewDriverResponse(ActionAccept, drunner.driver.GetId(), rideId)
 	} else {
-		respChan <- entity.NewDriverResponse(ActionReject, drunner.driver.GetId(), rideId)
+		respChan <- entities.NewDriverResponse(ActionReject, drunner.driver.GetId(), rideId)
 	}
 }
-func (drunner *driverRunner) getDriver() *entity.Driver { return drunner.driver }
+func (drunner *driverRunner) getDriver() *entities.Driver { return drunner.driver }
 
 func (drunner *driverRunner) change(state bool) bool {
 	if drunner.busy != state {

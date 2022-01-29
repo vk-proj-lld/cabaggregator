@@ -3,8 +3,9 @@ package main
 import (
 	"fmt"
 	"sync"
-	"ubermc/entity"
-	"ubermc/service"
+
+	"github.com/vk-proj-lld/cabdispatcher/entities"
+	"github.com/vk-proj-lld/cabdispatcher/service"
 )
 
 func main() {
@@ -14,13 +15,13 @@ func main() {
 	dispather.AddDriver("D1", "D2", "D3", "D4", "D5")
 
 	var wg sync.WaitGroup
-	var rides []*entity.Ride
+	var rides []*entities.Ride
 	for i := 0; i < 10; i++ {
-		rides = append(rides, entity.NewRide(fmt.Sprintf("R%d", i+1)))
+		rides = append(rides, entities.NewRide(fmt.Sprintf("R%d", i+1)))
 	}
 	for _, ride := range rides {
 		wg.Add(1)
-		go func(ride *entity.Ride) {
+		go func(ride *entities.Ride) {
 			driver, err := dispather.Dispatch(ride)
 			if err != nil {
 				fmt.Printf("Booking Ride for %s, No drivers\n", ride.GetId())
