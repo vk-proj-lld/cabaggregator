@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/vk-proj-lld/cabdispatcher/interfaces/iio"
+	"github.com/vk-proj-lld/cabaggregator/interfaces/iio"
 )
 
 type outUseCase struct {

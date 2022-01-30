@@ -5,8 +5,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/vk-proj-lld/cabdispatcher/entities/rider"
-	"github.com/vk-proj-lld/cabdispatcher/interfaces/istrategy"
+	"github.com/vk-proj-lld/cabaggregator/entities/rider"
+	"github.com/vk-proj-lld/cabaggregator/interfaces/istrategy"
 )
 
 var counter uint32

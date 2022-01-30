@@ -4,8 +4,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/vk-proj-lld/cabdispatcher/interfaces/istrategy"
-	"github.com/vk-proj-lld/cabdispatcher/utils"
+	"github.com/vk-proj-lld/cabaggregator/interfaces/istrategy"
+	"github.com/vk-proj-lld/cabaggregator/utils"
 )
 
 type equalChoiceStrategy struct {
