@@ -1,7 +1,7 @@
 package istrategy
 
-import "github.com/vk-proj-lld/cabaggregator/entities"
+import "github.com/vk-proj-lld/cabaggregator/entities/signals"
 
 type IStrategy interface {
-	Select() entities.AckSignal
+	Select() signals.AckSignal
 }

@@ -5,7 +5,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/vk-proj-lld/cabaggregator/entities/rider"
+	"github.com/vk-proj-lld/cabaggregator/entities/signals"
 	"github.com/vk-proj-lld/cabaggregator/interfaces/istrategy"
 )
 
@@ -37,6 +37,20 @@ func (d *Driver) String() string {
 	return fmt.Sprintf("(%d) %s", d.id, d.name)
 }
 
-func (d *Driver) InformIncommingRide(ride *rider.RideRequest) {
-	ride.ReceiveSignal(rider.NewDriverSignal(d.choiceStrategy.Select(), d.id)) // call to select method gives driver sometime to process
+func (d *Driver) InformIncommingRide(rideId int, dsig chan<- signals.DriverSignal) {
+	dsig <- signals.NewDriverSignal(d.choiceStrategy.Select(), d.id, rideId)
+}
+
+func (d *Driver) Block() bool {
+	if d.blocked {
+		return false
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.blocked {
+		return false
+	} else {
+		d.blocked = true
+		return true
+	}
 }

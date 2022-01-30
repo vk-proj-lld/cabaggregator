@@ -1,4 +1,4 @@
-package entities
+package signals
 
 const (
 	AckAccept AckSignal = iota + 1

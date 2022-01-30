@@ -2,20 +2,31 @@ package uc
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/vk-proj-lld/cabaggregator/entities/driver"
+	"github.com/vk-proj-lld/cabaggregator/entities/out"
 	"github.com/vk-proj-lld/cabaggregator/entities/rider"
+	"github.com/vk-proj-lld/cabaggregator/entities/signals"
 	"github.com/vk-proj-lld/cabaggregator/interfaces/idispatcher"
+	"github.com/vk-proj-lld/cabaggregator/interfaces/iio"
 )
 
 type dispatcher struct {
 	rides    chan *rider.RideRequest
 	disprepo idispatcher.IDispatcherRepo
+
+	out iio.IOout
 }
 
-func NewDispatcher() idispatcher.IDispatcher {
-	disp := &dispatcher{}
+func NewDispatcher(disprepo idispatcher.IDispatcherRepo, output iio.IOout) idispatcher.IDispatcher {
+	if output == nil {
+		output = out.NewConsoleOutPutUsecase()
+	}
+	disp := &dispatcher{
+		disprepo: disprepo,
+		rides:    make(chan *rider.RideRequest),
+		out:      output,
+	}
 	go disp.run()
 	return disp
 }
@@ -28,20 +39,33 @@ func NewDispatcher() idispatcher.IDispatcher {
 */
 
 func (disp *dispatcher) Dispatch(ride *rider.RideRequest) (*driver.Driver, error) {
-	sigchan := make(chan rider.DriverSignal)
-	ride.RegisterSigChan(sigchan)
+	driverchan := make(chan *driver.Driver, 1)
+	defer close(driverchan)
+	ride.RegisterDriverChan(driverchan)
+
 	disp.rides <- ride
-	return disp.listenNBlockAvailableDriver(sigchan)
+
+	driver := <-driverchan
+	if driver == nil {
+		return nil, errors.New("no driver found")
+	}
+	return driver, nil
 }
 
-func (disp *dispatcher) AddDriver(ids ...string) {
-
+func (disp *dispatcher) AddDriver(drivers ...*driver.Driver) {
+	for _, dr := range drivers {
+		disp.disprepo.SaveDriver(dr)
+	}
 }
 
 func (disp *dispatcher) run() {
 	func() {
 		for ride := range disp.rides {
 			drivers := disp.disprepo.GetDrivers()
+			sigchan := make(chan signals.DriverSignal, len(drivers))
+			ride.RegisterSigChan(sigchan)
+
+			go disp.listenSignalsFromDriversAgainstRideRequest(ride, sigchan)
 			disp.broadcast(ride, drivers...)
 		}
 	}()
@@ -49,15 +73,28 @@ func (disp *dispatcher) run() {
 
 func (disp *dispatcher) broadcast(ride *rider.RideRequest, drivers ...*driver.Driver) {
 	for _, drvr := range drivers {
-		go drvr.InformIncommingRide(ride)
+		go drvr.InformIncommingRide(ride.Id(), ride.GetSigChan())
 	}
+}
+
+func (disp *dispatcher) listenSignalsFromDriversAgainstRideRequest(ride *rider.RideRequest, sigchan chan signals.DriverSignal) {
+L1:
+	for sig := range sigchan {
+		if sig.Sig() == signals.AckAccept {
+			driver := disp.disprepo.GetDriver(sig.DriverId())
+			if driver != nil && driver.Block() {
+				ride.GetDriverChan() <- driver
+				break L1
+			}
+		}
+		disp.out.Write(sig)
+	}
+	for sig := range sigchan {
+		disp.out.Write(sig)
+	}
+
+	close(sigchan)
 }
 
 // in the given channels all the signal from various drivers are listened
 // first blockableDriver is to be returned
-func (disp *dispatcher) listenNBlockAvailableDriver(sigs <-chan rider.DriverSignal) (*driver.Driver, error) {
-	for sig := range sigs {
-		fmt.Println(sig)
-	}
-	return nil, errors.New("no driver found")
-}

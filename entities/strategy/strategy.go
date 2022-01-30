@@ -4,29 +4,30 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/vk-proj-lld/cabaggregator/entities"
+	"github.com/vk-proj-lld/cabaggregator/entities/signals"
 	"github.com/vk-proj-lld/cabaggregator/interfaces/istrategy"
 	"github.com/vk-proj-lld/cabaggregator/utils"
 )
 
 type equalChoiceStrategy struct {
-	choices []entities.AckSignal
+	choices []signals.AckSignal
 	slots   int
-	rangen  *rand.Rand
 }
 
-func NewEqualChoiceStrategy(choices ...entities.AckSignal) istrategy.IStrategy {
+var rangen = rand.New(rand.NewSource(utils.RandomGenSeed))
+
+func NewEqualChoiceStrategy(choices ...signals.AckSignal) istrategy.IStrategy {
 	return &equalChoiceStrategy{
 		slots:   len(choices),
 		choices: choices,
-		rangen:  rand.New(rand.NewSource(utils.RandomGenSeed)),
 	}
 }
 
-func (eqst *equalChoiceStrategy) Select() entities.AckSignal {
+func (eqst *equalChoiceStrategy) Select() signals.AckSignal {
 	//processing time
-	ms := 100 + eqst.rangen.Intn(500)
+	ms := 100 + rangen.Intn(500)
 	time.Sleep(time.Duration(ms))
 
-	return eqst.choices[eqst.rangen.Intn(eqst.slots)]
+	idx := rangen.Intn(eqst.slots)
+	return eqst.choices[idx]
 }

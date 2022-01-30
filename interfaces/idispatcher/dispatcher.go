@@ -6,6 +6,6 @@ import (
 )
 
 type IDispatcher interface {
-	AddDriver(ids ...string)
+	AddDriver(drivers ...*driver.Driver)
 	Dispatch(ride *rider.RideRequest) (*driver.Driver, error)
 }
