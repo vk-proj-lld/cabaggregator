@@ -3,15 +3,27 @@ package rider
 import (
 	"sync/atomic"
 	"time"
+
+	"github.com/vk-proj-lld/cabaggregator/entities"
 )
 
 var reqcounter uint32
+
+type DriverSignal struct {
+	sig      entities.AckSignal
+	driverId int
+}
+
+func NewDriverSignal(sig entities.AckSignal, driverId int) DriverSignal {
+	return DriverSignal{sig, driverId}
+}
 
 type RideRequest struct {
 	id,
 	riderId int
 
-	rtime time.Time
+	sigchan chan<- DriverSignal
+	rtime   time.Time
 }
 
 func NewRideRequest(riderId int, reqtime time.Time) *RideRequest {
@@ -25,3 +37,13 @@ func NewRideRequest(riderId int, reqtime time.Time) *RideRequest {
 func (rr *RideRequest) Id() int { return rr.id }
 
 func (rr *RideRequest) RiderId() int { return rr.riderId }
+
+func (rr *RideRequest) RegisterSigChan(sigchan chan<- DriverSignal) {
+	rr.sigchan = sigchan
+}
+
+func (rr *RideRequest) ReceiveSignal(sig DriverSignal) {
+	if rr.sigchan != nil {
+		rr.sigchan <- sig
+	}
+}

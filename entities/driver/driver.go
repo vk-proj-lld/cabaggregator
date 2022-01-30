@@ -17,8 +17,6 @@ type Driver struct {
 
 	choiceStrategy istrategy.IStrategy
 
-	stop chan struct{}
-
 	mu      sync.Mutex
 	blocked bool
 }
@@ -39,21 +37,6 @@ func (d *Driver) String() string {
 	return fmt.Sprintf("(%d) %s", d.id, d.name)
 }
 
-func (d *Driver) RegisterRideChannel(rides <-chan *rider.RideRequest) {
-	go func() {
-	L1:
-		for {
-			select {
-			case ride := <-rides:
-				fmt.Println(ride)
-				//todo -  take decision take it or now
-			case <-d.stop:
-				break L1
-			}
-		}
-	}()
-}
-
-func (d *Driver) DeRegisterRideChannel() {
-	d.stop <- struct{}{}
+func (d *Driver) InformIncommingRide(ride *rider.RideRequest) {
+	ride.ReceiveSignal(rider.NewDriverSignal(d.choiceStrategy.Select(), d.id)) // call to select method gives driver sometime to process
 }
