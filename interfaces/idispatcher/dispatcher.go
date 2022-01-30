@@ -1,4 +1,4 @@
-package service
+package idispatcher
 
 import "github.com/vk-proj-lld/cabdispatcher/entities"
 
