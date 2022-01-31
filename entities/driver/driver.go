@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
+
+	"github.com/vk-proj-lld/cabaggregator/entities/rider"
 )
 
 var counter uint32
@@ -34,11 +36,7 @@ func (d *Driver) String() string {
 	return fmt.Sprintf("(%d) %s", d.id, d.name)
 }
 
-func (d *Driver) InformIncommingRide(rideId int, dsig chan<- DriverSignal) {
-	dsig <- NewDriverSignal(d.choiceStrategy.Select(), d.id, rideId)
-}
-
-func (d *Driver) Block() bool {
+func (d *Driver) Block(ride *rider.RideRequest) bool {
 	if d.blocked {
 		return false
 	}
@@ -50,4 +48,9 @@ func (d *Driver) Block() bool {
 		d.blocked = true
 		return true
 	}
+}
+
+func (d *Driver) Decide(ride *rider.RideRequest, rider *rider.Rider) AckSignal {
+	//decide what to do based on ride and rider
+	return d.choiceStrategy.Select()
 }

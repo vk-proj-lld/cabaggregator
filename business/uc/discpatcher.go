@@ -2,6 +2,7 @@ package uc
 
 import (
 	"errors"
+	"sync"
 
 	"github.com/vk-proj-lld/cabaggregator/entities/driver"
 	"github.com/vk-proj-lld/cabaggregator/entities/out"
@@ -10,9 +11,14 @@ import (
 	"github.com/vk-proj-lld/cabaggregator/interfaces/iio"
 )
 
+type rideDriverResp struct {
+	*rider.RideRequest
+	drchan chan<- *driver.Driver
+}
+
 type dispatcher struct {
-	rides    chan *rider.RideRequest
-	disprepo idispatcher.IDispatcherRepo
+	ridedrivers chan rideDriverResp
+	disprepo    idispatcher.IDispatcherRepo
 
 	out iio.IOout
 }
@@ -22,9 +28,9 @@ func NewDispatcher(disprepo idispatcher.IDispatcherRepo, output iio.IOout) idisp
 		output = out.NewConsoleOutPutUsecase()
 	}
 	disp := &dispatcher{
-		disprepo: disprepo,
-		rides:    make(chan *rider.RideRequest),
-		out:      output,
+		disprepo:    disprepo,
+		ridedrivers: make(chan rideDriverResp),
+		out:         output,
 	}
 	go disp.run()
 	return disp
@@ -40,9 +46,8 @@ func NewDispatcher(disprepo idispatcher.IDispatcherRepo, output iio.IOout) idisp
 func (disp *dispatcher) Dispatch(ride *rider.RideRequest) (*driver.Driver, error) {
 	driverchan := make(chan *driver.Driver, 1)
 	defer close(driverchan)
-	ride.RegisterDriverChan(driverchan)
 
-	disp.rides <- ride
+	disp.ridedrivers <- rideDriverResp{ride, driverchan}
 
 	driver := <-driverchan
 	if driver == nil {
@@ -59,41 +64,28 @@ func (disp *dispatcher) AddDriver(drivers ...*driver.Driver) {
 
 func (disp *dispatcher) run() {
 	func() {
-		for ride := range disp.rides {
+		for rd := range disp.ridedrivers {
 			drivers := disp.disprepo.GetDrivers()
-			sigchan := make(chan driver.DriverSignal, len(drivers))
-			ride.RegisterSigChan(sigchan)
-
-			go disp.listenSignalsFromDriversAgainstRideRequest(ride, sigchan)
-			disp.broadcast(ride, drivers...)
+			disp.broadcast(rd.drchan, rd.RideRequest, drivers...)
 		}
 	}()
 }
 
-func (disp *dispatcher) broadcast(ride *rider.RideRequest, drivers ...*driver.Driver) {
-	for _, drvr := range drivers {
-		go drvr.InformIncommingRide(ride.Id(), ride.GetSigChan())
-	}
-}
-
-func (disp *dispatcher) listenSignalsFromDriversAgainstRideRequest(ride *rider.RideRequest, sigchan chan driver.DriverSignal) {
-L1:
-	for sig := range sigchan {
-		if sig.Sig() == driver.AckAccept {
-			driver := disp.disprepo.GetDriver(sig.DriverId())
-			if driver != nil && driver.Block() {
-				ride.GetDriverChan() <- driver
-				break L1
-			}
-		}
-		disp.out.Write(sig)
-	}
-	for sig := range sigchan {
-		disp.out.Write(sig)
-	}
-
-	close(sigchan)
-}
-
-// in the given channels all the signal from various drivers are listened
 // first blockableDriver is to be returned
+func (disp *dispatcher) broadcast(drchanel chan<- *driver.Driver, ride *rider.RideRequest, drivers ...*driver.Driver) {
+	var mu sync.Mutex
+	var driverAssigned bool
+	for _, drvr := range drivers {
+		go func(drvr *driver.Driver) {
+			signal := drvr.Decide(ride, nil)
+			if signal == driver.AckAccept && !driverAssigned {
+				mu.Lock()
+				defer mu.Unlock()
+				if !driverAssigned && drvr.Block(ride) {
+					driverAssigned = true
+					drchanel <- drvr
+				}
+			}
+		}(drvr)
+	}
+}
