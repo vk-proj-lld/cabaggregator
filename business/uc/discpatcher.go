@@ -78,25 +78,35 @@ func (disp *dispatcher) run() {
 
 // first blockableDriver is to be returned
 func (disp *dispatcher) broadcast(drchanel chan<- *driver.Driver, ride *rider.RideRequest, drivers ...*driver.Driver) {
-	var mu sync.Mutex
-	var driverAssigned bool
-	for _, drvr := range drivers {
-		go func(drvr *driver.Driver) {
-			if drvr.IsBlocked() {
-				//for now blocked driver is not notified
-				//can be discussed
-				return
-			}
-			signal := drvr.Decide(ride, nil)
-			disp.logger.Write(ride, drvr, signal, time.Now())
-			if signal == driver.AckAccept && !driverAssigned {
-				mu.Lock()
-				defer mu.Unlock()
-				if !driverAssigned && drvr.Block(ride) {
-					driverAssigned = true
-					drchanel <- drvr
-				}
-			}
-		}(drvr)
+	var unitmu sync.Once
+	disp.broadcastHelper(&unitmu, drchanel, ride, drivers)
+}
+
+func (disp *dispatcher) broadcastHelper(unitmu *sync.Once, drchanel chan<- *driver.Driver, ride *rider.RideRequest, drivers []*driver.Driver) {
+	var size = len(drivers)
+	if size == 0 {
+		return
+	}
+	if size == 1 {
+		go disp.unicast(unitmu, drchanel, ride, drivers[0])
+	}
+	go disp.broadcastHelper(unitmu, drchanel, ride, drivers[0:size/2])  //  l1
+	go disp.broadcastHelper(unitmu, drchanel, ride, drivers[size/2+1:]) // l2
+}
+
+func (disp *dispatcher) unicast(unitmu *sync.Once, drchanel chan<- *driver.Driver, ride *rider.RideRequest, drvr *driver.Driver) {
+	if drvr.IsBlocked() {
+		//for now blocked driver is not notified
+		//can be discussed
+		return
+	}
+	signal := drvr.Decide(ride, nil)
+	disp.logger.Write(ride, drvr, signal, time.Now())
+	if signal == driver.AckAccept {
+		if drvr.Block(ride) {
+			unitmu.Do(func() {
+				drchanel <- drvr
+			})
+		}
 	}
 }
