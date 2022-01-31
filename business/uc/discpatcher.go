@@ -77,6 +77,11 @@ func (disp *dispatcher) broadcast(drchanel chan<- *driver.Driver, ride *rider.Ri
 	var driverAssigned bool
 	for _, drvr := range drivers {
 		go func(drvr *driver.Driver) {
+			if drvr.IsBlocked() {
+				//for now blocked driver is not notified
+				//can be discussed
+				return
+			}
 			signal := drvr.Decide(ride, nil)
 			if signal == driver.AckAccept && !driverAssigned {
 				mu.Lock()

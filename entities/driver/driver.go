@@ -36,6 +36,10 @@ func (d *Driver) String() string {
 	return fmt.Sprintf("(%d) %s", d.id, d.name)
 }
 
+func (d *Driver) IsBlocked() bool {
+	return d.blocked
+}
+
 func (d *Driver) Block(ride *rider.RideRequest) bool {
 	if d.blocked {
 		return false
