@@ -1,6 +1,7 @@
 # cabaggregator
 
 ```
+├── README.md
 ├── broadcast.go
 ├── business
 │   ├── repo
@@ -8,25 +9,23 @@
 │   └── uc
 │       └── discpatcher.go
 ├── entities
-│   ├── consts.go
 │   ├── driver
-│   │   └── driver.go
+│   │   ├── driver.go
+│   │   ├── istrategy.go
+│   │   ├── signal.go
+│   │   └── strategy.go
 │   ├── out
+│   │   ├── fileout.go
+│   │   ├── iout.go
 │   │   └── stdo.go
-│   ├── rider
-│   │   ├── request.go
-│   │   └── rider.go
-│   └── strategy
-│       └── strategy.go
+│   └── rider
+│       ├── request.go
+│       └── rider.go
 ├── go.mod
 ├── interfaces
-│   ├── idispatcher
-│   │   ├── dispatcher.go
-│   │   └── dispatcherrepo.go
-│   ├── iio
-│   │   └── out.go
-│   └── istrategy
-│       └── strategy.go
+│   └── idispatcher
+│       ├── dispatcher.go
+│       └── dispatcherrepo.go
 ├── main.go
 └── utils
     └── seed.go
