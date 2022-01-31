@@ -3,19 +3,17 @@ package out
 import (
 	"fmt"
 	"sync"
-
-	"github.com/vk-proj-lld/cabaggregator/interfaces/iio"
 )
 
-type outUseCase struct {
+type stdo struct {
 	mu sync.Mutex
 }
 
-func NewConsoleOutPutUsecase() iio.IOout {
-	return &outUseCase{}
+func NewStdO() IOout {
+	return &stdo{}
 }
 
-func (out *outUseCase) Write(contents ...interface{}) {
+func (out *stdo) Write(contents ...interface{}) {
 	out.mu.Lock()
 	defer out.mu.Unlock()
 	fmt.Println("-----------------------------------")
@@ -23,4 +21,8 @@ func (out *outUseCase) Write(contents ...interface{}) {
 		fmt.Println(content)
 	}
 	fmt.Println("-----------------------------------")
+}
+
+func (out *stdo) Close() error {
+	return nil
 }

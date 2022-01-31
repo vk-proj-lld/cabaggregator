@@ -19,6 +19,8 @@ func NewRider(name string) *Rider {
 	}
 }
 
-func (r *Rider) Id() int        { return r.id }
-func (r *Rider) Name() string   { return r.name }
-func (r *Rider) String() string { return fmt.Sprintf("(%d) %s", r.id, r.name) }
+func (r *Rider) Id() int { return r.id }
+
+func (r *Rider) Name() string { return r.name }
+
+func (r *Rider) String() string { return fmt.Sprintf("%s(%d)", r.name, r.id) }

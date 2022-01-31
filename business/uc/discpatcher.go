@@ -3,12 +3,12 @@ package uc
 import (
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/vk-proj-lld/cabaggregator/entities/driver"
 	"github.com/vk-proj-lld/cabaggregator/entities/out"
 	"github.com/vk-proj-lld/cabaggregator/entities/rider"
 	"github.com/vk-proj-lld/cabaggregator/interfaces/idispatcher"
-	"github.com/vk-proj-lld/cabaggregator/interfaces/iio"
 )
 
 type rideDriverResp struct {
@@ -20,17 +20,21 @@ type dispatcher struct {
 	ridedrivers chan rideDriverResp
 	disprepo    idispatcher.IDispatcherRepo
 
-	out iio.IOout
+	out, logger out.IOout
 }
 
-func NewDispatcher(disprepo idispatcher.IDispatcherRepo, output iio.IOout) idispatcher.IDispatcher {
+func NewDispatcher(disprepo idispatcher.IDispatcherRepo, output, logout out.IOout) idispatcher.IDispatcher {
 	if output == nil {
-		output = out.NewConsoleOutPutUsecase()
+		output = out.NewFileOut()
+	}
+	if logout == nil {
+		output = out.NewFileOut()
 	}
 	disp := &dispatcher{
 		disprepo:    disprepo,
 		ridedrivers: make(chan rideDriverResp),
 		out:         output,
+		logger:      logout,
 	}
 	go disp.run()
 	return disp
@@ -43,13 +47,14 @@ func NewDispatcher(disprepo idispatcher.IDispatcherRepo, output iio.IOout) idisp
 	- driver should not be booked if blocked(serving riderRequest)
 */
 
+//time taking function in real-world prolem, 5 mins.
 func (disp *dispatcher) Dispatch(ride *rider.RideRequest) (*driver.Driver, error) {
 	driverchan := make(chan *driver.Driver, 1)
-	defer close(driverchan)
 
 	disp.ridedrivers <- rideDriverResp{ride, driverchan}
-
 	driver := <-driverchan
+
+	close(driverchan)
 	if driver == nil {
 		return nil, errors.New("no driver found")
 	}
@@ -83,6 +88,7 @@ func (disp *dispatcher) broadcast(drchanel chan<- *driver.Driver, ride *rider.Ri
 				return
 			}
 			signal := drvr.Decide(ride, nil)
+			disp.logger.Write(ride, drvr, signal, time.Now())
 			if signal == driver.AckAccept && !driverAssigned {
 				mu.Lock()
 				defer mu.Unlock()

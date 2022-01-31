@@ -16,13 +16,14 @@ func main() {
 	// testChanelBroadCasting()
 
 	repo := repo.NewDispatcherRepo()
-	stdo := out.NewConsoleOutPutUsecase()
-	dispatcher := uc.NewDispatcher(repo, stdo)
+	stdo := out.NewStdO()
+	log := out.NewFileOut()
+	dispatcher := uc.NewDispatcher(repo, stdo, log)
 	dispatcher.AddDriver(getDrivers(7)...)
 	// fmt.Println(dispatcher.Dispatch(getRides(1)[0]))
 	// return
 	var wg sync.WaitGroup
-	for _, ride := range getRides(30) {
+	for _, ride := range getRides(4) {
 		wg.Add(1)
 		go func(ride *rider.RideRequest) {
 			driver, err := dispatcher.Dispatch(ride)

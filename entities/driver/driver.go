@@ -33,7 +33,7 @@ func (d *Driver) Id() int { return d.id }
 func (d *Driver) Name() string { return d.name }
 
 func (d *Driver) String() string {
-	return fmt.Sprintf("(%d) %s", d.id, d.name)
+	return fmt.Sprintf("%s(%d)", d.name, d.id)
 }
 
 func (d *Driver) IsBlocked() bool {
