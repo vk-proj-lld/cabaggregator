@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
-
-	"github.com/vk-proj-lld/cabaggregator/entities/signals"
-	"github.com/vk-proj-lld/cabaggregator/interfaces/istrategy"
 )
 
 var counter uint32
@@ -15,13 +12,13 @@ type Driver struct {
 	id   int
 	name string
 
-	choiceStrategy istrategy.IStrategy
+	choiceStrategy IStrategy
 
 	mu      sync.Mutex
 	blocked bool
 }
 
-func NewDriver(name string, strat istrategy.IStrategy) *Driver {
+func NewDriver(name string, strat IStrategy) *Driver {
 	return &Driver{
 		id:             int(atomic.AddUint32(&counter, 1)),
 		name:           name,
@@ -37,8 +34,8 @@ func (d *Driver) String() string {
 	return fmt.Sprintf("(%d) %s", d.id, d.name)
 }
 
-func (d *Driver) InformIncommingRide(rideId int, dsig chan<- signals.DriverSignal) {
-	dsig <- signals.NewDriverSignal(d.choiceStrategy.Select(), d.id, rideId)
+func (d *Driver) InformIncommingRide(rideId int, dsig chan<- DriverSignal) {
+	dsig <- NewDriverSignal(d.choiceStrategy.Select(), d.id, rideId)
 }
 
 func (d *Driver) Block() bool {

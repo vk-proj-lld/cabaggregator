@@ -1,29 +1,27 @@
-package strategy
+package driver
 
 import (
 	"math/rand"
 	"time"
 
-	"github.com/vk-proj-lld/cabaggregator/entities/signals"
-	"github.com/vk-proj-lld/cabaggregator/interfaces/istrategy"
 	"github.com/vk-proj-lld/cabaggregator/utils"
 )
 
 type equalChoiceStrategy struct {
-	choices []signals.AckSignal
+	choices []AckSignal
 	slots   int
 }
 
 var rangen = rand.New(rand.NewSource(utils.RandomGenSeed))
 
-func NewEqualChoiceStrategy(choices ...signals.AckSignal) istrategy.IStrategy {
+func NewEqualChoiceStrategy(choices ...AckSignal) IStrategy {
 	return &equalChoiceStrategy{
 		slots:   len(choices),
 		choices: choices,
 	}
 }
 
-func (eqst *equalChoiceStrategy) Select() signals.AckSignal {
+func (eqst *equalChoiceStrategy) Select() AckSignal {
 	//processing time
 	ms := 100 + rangen.Intn(500)
 	time.Sleep(time.Duration(ms))

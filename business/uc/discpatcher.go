@@ -6,7 +6,6 @@ import (
 	"github.com/vk-proj-lld/cabaggregator/entities/driver"
 	"github.com/vk-proj-lld/cabaggregator/entities/out"
 	"github.com/vk-proj-lld/cabaggregator/entities/rider"
-	"github.com/vk-proj-lld/cabaggregator/entities/signals"
 	"github.com/vk-proj-lld/cabaggregator/interfaces/idispatcher"
 	"github.com/vk-proj-lld/cabaggregator/interfaces/iio"
 )
@@ -62,7 +61,7 @@ func (disp *dispatcher) run() {
 	func() {
 		for ride := range disp.rides {
 			drivers := disp.disprepo.GetDrivers()
-			sigchan := make(chan signals.DriverSignal, len(drivers))
+			sigchan := make(chan driver.DriverSignal, len(drivers))
 			ride.RegisterSigChan(sigchan)
 
 			go disp.listenSignalsFromDriversAgainstRideRequest(ride, sigchan)
@@ -77,10 +76,10 @@ func (disp *dispatcher) broadcast(ride *rider.RideRequest, drivers ...*driver.Dr
 	}
 }
 
-func (disp *dispatcher) listenSignalsFromDriversAgainstRideRequest(ride *rider.RideRequest, sigchan chan signals.DriverSignal) {
+func (disp *dispatcher) listenSignalsFromDriversAgainstRideRequest(ride *rider.RideRequest, sigchan chan driver.DriverSignal) {
 L1:
 	for sig := range sigchan {
-		if sig.Sig() == signals.AckAccept {
+		if sig.Sig() == driver.AckAccept {
 			driver := disp.disprepo.GetDriver(sig.DriverId())
 			if driver != nil && driver.Block() {
 				ride.GetDriverChan() <- driver

@@ -1,4 +1,4 @@
-package signals
+package driver
 
 const (
 	AckAccept AckSignal = iota + 1

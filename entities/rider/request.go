@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/vk-proj-lld/cabaggregator/entities/driver"
-	"github.com/vk-proj-lld/cabaggregator/entities/signals"
 )
 
 var reqcounter uint32
@@ -15,7 +14,7 @@ type RideRequest struct {
 	riderId int
 
 	dchan   chan<- *driver.Driver
-	sigchan chan<- signals.DriverSignal
+	sigchan chan<- driver.DriverSignal
 	rtime   time.Time
 }
 
@@ -39,15 +38,15 @@ func (rr *RideRequest) GetDriverChan() chan<- *driver.Driver {
 	return rr.dchan
 }
 
-func (rr *RideRequest) RegisterSigChan(sigchan chan<- signals.DriverSignal) {
+func (rr *RideRequest) RegisterSigChan(sigchan chan<- driver.DriverSignal) {
 	rr.sigchan = sigchan
 }
 
-func (rr *RideRequest) GetSigChan() chan<- signals.DriverSignal {
+func (rr *RideRequest) GetSigChan() chan<- driver.DriverSignal {
 	return rr.sigchan
 }
 
-func (rr *RideRequest) ReceiveSignal(sig signals.DriverSignal) {
+func (rr *RideRequest) ReceiveSignal(sig driver.DriverSignal) {
 	if rr.sigchan != nil {
 		rr.sigchan <- sig
 	}

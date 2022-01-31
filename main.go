@@ -10,8 +10,6 @@ import (
 	"github.com/vk-proj-lld/cabaggregator/entities/driver"
 	"github.com/vk-proj-lld/cabaggregator/entities/out"
 	"github.com/vk-proj-lld/cabaggregator/entities/rider"
-	"github.com/vk-proj-lld/cabaggregator/entities/signals"
-	"github.com/vk-proj-lld/cabaggregator/entities/strategy"
 )
 
 func main() {
@@ -43,7 +41,7 @@ func main() {
 func getDrivers(n int) (drivers []*driver.Driver) {
 	for i := 0; i < n; i++ {
 		name := fmt.Sprintf("Driver-%d", i+1)
-		drivers = append(drivers, driver.NewDriver(name, strategy.NewEqualChoiceStrategy(signals.AckAccept, signals.AckReject)))
+		drivers = append(drivers, driver.NewDriver(name, driver.NewEqualChoiceStrategy(driver.AckAccept, driver.AckReject)))
 	}
 	return drivers
 }
