@@ -2,7 +2,6 @@ package uc
 
 import (
 	"errors"
-	"sync"
 	"time"
 
 	"github.com/vk-proj-lld/cabaggregator/entities/driver"
@@ -11,15 +10,9 @@ import (
 	"github.com/vk-proj-lld/cabaggregator/interfaces/idispatcher"
 )
 
-type rideDriverResp struct {
-	*rider.RideRequest
-	drchan chan<- *driver.Driver
-}
-
 type dispatcher struct {
-	ridedrivers chan rideDriverResp
+	rides       chan *rider.RideRequest
 	disprepo    idispatcher.IDispatcherRepo
-
 	out, logger out.IOout
 }
 
@@ -31,13 +24,19 @@ func NewDispatcher(disprepo idispatcher.IDispatcherRepo, output, logout out.IOou
 		output = out.NewFileOut()
 	}
 	disp := &dispatcher{
-		disprepo:    disprepo,
-		ridedrivers: make(chan rideDriverResp),
-		out:         output,
-		logger:      logout,
+		disprepo: disprepo,
+		rides:    make(chan *rider.RideRequest),
+		out:      output,
+		logger:   logout,
 	}
 	go disp.run()
 	return disp
+}
+
+func (disp *dispatcher) AddDriver(drivers ...*driver.Driver) {
+	for _, dr := range drivers {
+		disp.disprepo.SaveDriver(dr)
+	}
 }
 
 /*
@@ -47,66 +46,53 @@ func NewDispatcher(disprepo idispatcher.IDispatcherRepo, output, logout out.IOou
 	- driver should not be booked if blocked(serving riderRequest)
 */
 
-//time taking function in real-world prolem, 5 mins.
+//time taking function in real-world problem, 5 mins.
 func (disp *dispatcher) Dispatch(ride *rider.RideRequest) (*driver.Driver, error) {
-	driverchan := make(chan *driver.Driver, 1)
-
-	disp.ridedrivers <- rideDriverResp{ride, driverchan}
-	driver := <-driverchan
-
-	close(driverchan)
-	if driver == nil {
+	ride.GetWG().Add(1)
+	disp.rides <- ride
+	ride.GetWG().Wait()
+	if ride.DriverId() == 0 {
 		return nil, errors.New("no driver found")
 	}
-	return driver, nil
-}
-
-func (disp *dispatcher) AddDriver(drivers ...*driver.Driver) {
-	for _, dr := range drivers {
-		disp.disprepo.SaveDriver(dr)
-	}
+	return disp.disprepo.GetDriver(ride.DriverId()), nil
 }
 
 func (disp *dispatcher) run() {
 	func() {
-		for rd := range disp.ridedrivers {
+		for ride := range disp.rides {
 			drivers := disp.disprepo.GetDrivers()
-			disp.broadcast(rd.drchan, rd.RideRequest, drivers...)
+			ride.GetWG().Add(len(drivers))
+			disp.broadcast(ride, drivers)
+			ride.GetWG().Done()
 		}
 	}()
 }
 
 // first blockableDriver is to be returned
-func (disp *dispatcher) broadcast(drchanel chan<- *driver.Driver, ride *rider.RideRequest, drivers ...*driver.Driver) {
-	var unitmu sync.Once
-	disp.broadcastHelper(&unitmu, drchanel, ride, drivers)
-}
-
-func (disp *dispatcher) broadcastHelper(unitmu *sync.Once, drchanel chan<- *driver.Driver, ride *rider.RideRequest, drivers []*driver.Driver) {
+func (disp *dispatcher) broadcast(ride *rider.RideRequest, drivers []*driver.Driver) {
 	var size = len(drivers)
 	if size == 0 {
 		return
 	}
 	if size == 1 {
-		go disp.unicast(unitmu, drchanel, ride, drivers[0])
+		go disp.unicast(ride, drivers[0])
+		return
 	}
-	go disp.broadcastHelper(unitmu, drchanel, ride, drivers[0:size/2])  //  l1
-	go disp.broadcastHelper(unitmu, drchanel, ride, drivers[size/2+1:]) // l2
+	go disp.broadcast(ride, drivers[:size/2])
+	go disp.broadcast(ride, drivers[size/2:])
 }
 
-func (disp *dispatcher) unicast(unitmu *sync.Once, drchanel chan<- *driver.Driver, ride *rider.RideRequest, drvr *driver.Driver) {
+func (disp *dispatcher) unicast(ride *rider.RideRequest, drvr *driver.Driver) {
+	defer ride.GetWG().Done()
 	if drvr.IsBlocked() {
 		//for now blocked driver is not notified
 		//can be discussed
 		return
 	}
 	signal := drvr.Decide(ride, nil)
-	disp.logger.Write(ride, drvr, signal, time.Now())
-	if signal == driver.AckAccept {
-		if drvr.Block(ride) {
-			unitmu.Do(func() {
-				drchanel <- drvr
-			})
-		}
+	if signal == driver.AckAccept && drvr.Block(ride) {
+		disp.logger.Write(ride, drvr, signal, "Booked", time.Now().Format("2006-01-02 15:04:05"))
+	} else {
+		disp.logger.Write(ride, drvr, signal, "Not Booked", time.Now().Format("2006-01-02 15:04:05"))
 	}
 }

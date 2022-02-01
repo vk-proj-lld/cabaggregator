@@ -46,12 +46,10 @@ func (d *Driver) Block(ride *rider.RideRequest) bool {
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if d.blocked {
-		return false
-	} else {
-		d.blocked = true
-		return true
+	if !d.blocked && ride.SetDriverIfNotSet(d.id) {
+		d.blocked = true // at this point driver and riderequest is blocked
 	}
+	return false
 }
 
 func (d *Driver) Decide(ride *rider.RideRequest, rider *rider.Rider) AckSignal {

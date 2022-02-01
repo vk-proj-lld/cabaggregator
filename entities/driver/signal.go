@@ -8,11 +8,8 @@ const (
 
 type AckSignal int
 
-func (a *AckSignal) String() string {
-	if a == nil {
-		return "invalid signal"
-	}
-	switch *a {
+func (a AckSignal) String() string {
+	switch a {
 	case AckAccept:
 		return "Accepted"
 	case AckReject:

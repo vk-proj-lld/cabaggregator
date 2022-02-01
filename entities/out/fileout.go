@@ -35,10 +35,15 @@ func NewFileOut() IOout {
 func (f *fileout) Write(data ...interface{}) {
 	var raw []byte
 	for _, datum := range data {
-		if t, ok := datum.(interface{ String() string }); ok {
-			raw = append(raw, []byte(t.String())...)
-		} else if r, err := json.Marshal(datum); err != nil {
-			raw = append(raw, r...)
+		switch v := datum.(type) {
+		case string:
+			raw = append(raw, []byte(v)...)
+		case interface{ String() string }:
+			raw = append(raw, []byte(v.String())...)
+		default:
+			if r, err := json.Marshal(datum); err != nil {
+				raw = append(raw, r...)
+			}
 		}
 	}
 	raw = append(raw, '\n')

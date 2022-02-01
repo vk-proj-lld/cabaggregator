@@ -1,7 +1,6 @@
 package uc
 
 import (
-	"sync"
 	"testing"
 	"time"
 
@@ -14,16 +13,14 @@ import (
 
 func Test_dispatcher_broadcast(t *testing.T) {
 	type fields struct {
-		ridedrivers chan rideDriverResp
-		disprepo    idispatcher.IDispatcherRepo
-		out         out.IOout
-		logger      out.IOout
+		rides    chan *rider.RideRequest
+		disprepo idispatcher.IDispatcherRepo
+		out      out.IOout
+		logger   out.IOout
 	}
 	type args struct {
-		unitmu   *sync.Once
-		drchanel chan *driver.Driver
-		ride     *rider.RideRequest
-		drivers  []*driver.Driver
+		ride    *rider.RideRequest
+		drivers []*driver.Driver
 	}
 	tests := []struct {
 		name   string
@@ -38,9 +35,7 @@ func Test_dispatcher_broadcast(t *testing.T) {
 				out:      out.NewStdO(),
 			},
 			args: args{
-				unitmu:   &sync.Once{},
-				ride:     rider.NewRideRequest(1, time.Now()),
-				drchanel: make(chan *driver.Driver),
+				ride: rider.NewRideRequest(1, time.Now()),
 				drivers: []*driver.Driver{
 					driver.NewDriver("d1", driver.NewEqualChoiceStrategy(driver.AckAccept, driver.AckReject)),
 					driver.NewDriver("d2", driver.NewEqualChoiceStrategy(driver.AckAccept, driver.AckReject)),
@@ -52,13 +47,16 @@ func Test_dispatcher_broadcast(t *testing.T) {
 				},
 			},
 		},
-		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			disp, _ := NewDispatcher(tt.fields.disprepo, tt.fields.out, tt.fields.logger).(*dispatcher)
-			disp.broadcast(tt.args.drchanel, tt.args.ride, tt.args.drivers...)
-			t.Log(<-tt.args.drchanel)
+			disp := &dispatcher{
+				rides:    tt.fields.rides,
+				disprepo: tt.fields.disprepo,
+				out:      tt.fields.out,
+				logger:   tt.fields.logger,
+			}
+			disp.broadcast(tt.args.ride, tt.args.drivers)
 		})
 	}
 }

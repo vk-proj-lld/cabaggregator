@@ -20,8 +20,8 @@ func main() {
 	log := out.NewFileOut()
 	dispatcher := uc.NewDispatcher(repo, stdo, log)
 	dispatcher.AddDriver(getDrivers(7)...)
-	// fmt.Println(dispatcher.Dispatch(getRides(1)[0]))
-	// return
+	fmt.Println(dispatcher.Dispatch(getRides(1)[0]))
+	return
 	var wg sync.WaitGroup
 	for _, ride := range getRides(4) {
 		wg.Add(1)
