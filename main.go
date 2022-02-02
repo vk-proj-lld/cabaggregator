@@ -19,11 +19,11 @@ func main() {
 	stdo := out.NewStdO()
 	log := out.NewFileOut()
 	dispatcher := uc.NewDispatcher(repo, stdo, log)
-	dispatcher.AddDriver(getDrivers(1)...)
+	dispatcher.AddDriver(getDrivers(7)...)
 	// fmt.Println(dispatcher.Dispatch(getRides(1)[0]))
 	// return
 	var wg sync.WaitGroup
-	for _, ride := range getRides(4) {
+	for _, ride := range getRides(30) {
 		wg.Add(1)
 		go func(ride *rider.RideRequest) {
 			driver, err := dispatcher.Dispatch(ride)
@@ -42,7 +42,7 @@ func main() {
 func getDrivers(n int) (drivers []*driver.Driver) {
 	for i := 0; i < n; i++ {
 		name := fmt.Sprintf("Driver-%d", i+1)
-		drivers = append(drivers, driver.NewDriver(name, driver.NewEqualChoiceStrategy(driver.AckAccept, driver.AckReject)))
+		drivers = append(drivers, driver.NewDriver(name, driver.NewEqualChoiceStrategy(2*time.Second, driver.AckAccept, driver.AckReject)))
 	}
 	return drivers
 }

@@ -29,7 +29,8 @@ func NewDispatcher(disprepo idispatcher.IDispatcherRepo, output, logout out.IOou
 		out:      output,
 		logger:   logout,
 	}
-	go disp.run()
+	go disp.listenRideds()
+	go disp.listenDrivers()
 	return disp
 }
 
@@ -57,12 +58,13 @@ func (disp *dispatcher) Dispatch(ride *rider.RideRequest) (*driver.Driver, error
 	return disp.disprepo.GetDriver(ride.DriverId()), nil
 }
 
-func (disp *dispatcher) run() {
+// This runs single worker on rides queue|channel of a dispatcher.
+func (disp *dispatcher) listenRideds() {
 	func() {
 		for ride := range disp.rides {
 			drivers := disp.disprepo.GetDrivers()
 			ride.GetWG().Add(len(drivers))
-			disp.broadcast(ride, drivers)
+			go disp.broadcast(ride, drivers)
 			ride.GetWG().Done()
 		}
 	}()
