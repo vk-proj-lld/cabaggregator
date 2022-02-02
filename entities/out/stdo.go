@@ -16,11 +16,10 @@ func NewStdO() IOout {
 func (out *stdo) Write(contents ...interface{}) {
 	out.mu.Lock()
 	defer out.mu.Unlock()
-	fmt.Println("-----------------------------------")
+	fmt.Println("\n-----------------------------------")
 	for _, content := range contents {
-		fmt.Println(content)
+		fmt.Print(content, " ")
 	}
-	fmt.Println("-----------------------------------")
 }
 
 func (out *stdo) Close() error {

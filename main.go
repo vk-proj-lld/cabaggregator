@@ -19,18 +19,18 @@ func main() {
 	stdo := out.NewStdO()
 	log := out.NewFileOut()
 	dispatcher := uc.NewDispatcher(repo, stdo, log)
-	dispatcher.AddDriver(getDrivers(7)...)
-	fmt.Println(dispatcher.Dispatch(getRides(1)[0]))
-	return
+	dispatcher.AddDriver(getDrivers(1)...)
+	// fmt.Println(dispatcher.Dispatch(getRides(1)[0]))
+	// return
 	var wg sync.WaitGroup
 	for _, ride := range getRides(4) {
 		wg.Add(1)
 		go func(ride *rider.RideRequest) {
 			driver, err := dispatcher.Dispatch(ride)
 			if err != nil {
-				defer stdo.Write("no cab dound for ride:", ride.Id(), err)
+				defer stdo.Write("no cab found for ride:", ride, err)
 			} else {
-				defer stdo.Write("cab found for ride:", ride.Id(), driver)
+				defer stdo.Write("cab found for ride:", ride, driver)
 			}
 			wg.Done()
 		}(ride)
